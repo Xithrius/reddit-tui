@@ -1,2 +1,2 @@
-# rust-project-template
-A template for Rust projects.
+# Terminal Reddit
+Reddit, but in the terminal.
