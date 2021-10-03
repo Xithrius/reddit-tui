@@ -3,11 +3,11 @@ use std::panic::panic_any;
 pub fn config_path() -> String {
     match std::env::consts::OS {
         "linux" | "macos" => match std::env::var("HOME") {
-            Ok(env_home_path) => format!("{}/.config/ttc/config.toml", env_home_path),
+            Ok(env_home_path) => format!("{}/.config/treddit/config.toml", env_home_path),
             Err(err) => panic_any(err),
         },
         "windows" => match std::env::var("APPDATA") {
-            Ok(appdata_path) => format!("{}\\{}", appdata_path, "ttc\\config.toml"),
+            Ok(appdata_path) => format!("{}\\{}", appdata_path, "treddit\\config.toml"),
             Err(err) => std::panic::panic_any(err),
         },
         _ => unimplemented!(),
@@ -24,7 +24,7 @@ mod tests {
         match std::env::var("APPDATA") {
             Ok(appdata_path) => assert_eq!(
                 config_path(),
-                format!("{}\\{}", appdata_path, "ttc\\config.toml")
+                format!("{}\\{}", appdata_path, "treddit\\config.toml")
             ),
             Err(err) => std::panic::panic_any(err),
         }
@@ -36,7 +36,7 @@ mod tests {
         match std::env::var("HOME") {
             Ok(env_home_path) => assert_eq!(
                 config_path(),
-                format!("{}/{}", env_home_path, ".config/ttc/config.toml")
+                format!("{}/{}", env_home_path, ".config/treddit/config.toml")
             ),
             Err(err) => std::panic::panic_any(err),
         }
@@ -48,7 +48,7 @@ mod tests {
         match std::env::var("HOME") {
             Ok(env_home_path) => assert_eq!(
                 config_path(),
-                format!("{}/{}", env_home_path, ".config/ttc/config.toml")
+                format!("{}/{}", env_home_path, ".config/treddit/config.toml")
             ),
             Err(err) => std::panic::panic_any(err),
         }

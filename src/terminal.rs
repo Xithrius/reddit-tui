@@ -9,19 +9,22 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::{backend::CrosstermBackend, layout::Constraint, Terminal};
 use tui::layout::{Direction, Layout};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Cell, Row, Table, Borders};
+use tui::widgets::{Block, Borders, Cell, Row, Table};
+use tui::{backend::CrosstermBackend, layout::Constraint, Terminal};
 
-use crate::utils::{app::App, event};
+use crate::handlers::{
+    app::App,
+    event::{Event, Events, Config},
+};
 
 pub async fn draw_terminal_ui() -> Result<()> {
-    let mut events = event::Events::with_config(event::Config {
+    let mut events = Events::with_config(Config {
         exit_key: KeyCode::Null,
         tick_rate: Duration::from_millis(250),
     })
-        .await;
+    .await;
 
     let app = App::new(25);
 
@@ -43,7 +46,7 @@ pub async fn draw_terminal_ui() -> Result<()> {
             LeaveAlternateScreen,
             DisableMouseCapture
         )
-            .unwrap();
+        .unwrap();
         terminal.show_cursor().unwrap();
     };
 
@@ -62,17 +65,23 @@ pub async fn draw_terminal_ui() -> Result<()> {
                     .constraints(vertical_chunk_constraints.as_ref())
                     .split(frame.size());
 
-                let table = Table::new(vec![
-                    Row::new(vec!["Row11", "Row12", "Row13"]),
-                ])
+                let table = Table::new(vec![Row::new(vec!["Row11", "Row12", "Row13"])])
                     .style(Style::default().fg(Color::White))
                     .header(
                         Row::new(vec!["Col1", "Col2", "Col3"])
                             .style(Style::default().fg(Color::Yellow))
-                            .bottom_margin(1)
+                            .bottom_margin(1),
                     )
-                    .block(Block::default().borders(Borders::ALL).title("[ Reddit feed ]"))
-                    .widths(&[Constraint::Length(5), Constraint::Length(5), Constraint::Length(10)])
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title("[ Reddit feed ]"),
+                    )
+                    .widths(&[
+                        Constraint::Length(5),
+                        Constraint::Length(5),
+                        Constraint::Length(10),
+                    ])
                     .column_spacing(1)
                     .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
@@ -80,7 +89,7 @@ pub async fn draw_terminal_ui() -> Result<()> {
             })
             .unwrap();
 
-        if let Some(event::Event::Input(input_event)) = &events.next().await {
+        if let Some(Event::Input(input_event)) = &events.next().await {
             if let KeyCode::Esc = input_event.code {
                 quitting(terminal);
                 break 'outer;

@@ -1,20 +1,18 @@
-use std::panic::panic_any;
 use std::collections::VecDeque;
 
-const BASE_URL: &str = "https://www.reddit.com/";
+use reqwest::Client;
+use serde::Deserialize;
 
-// pub enum Status {
-//     Hot,
-//     Top,
-//     New,
-//     Controversial,
-// }
+use crate::handlers::config::CompleteConfig;
 
+const BASE_URL: &str = "https://www.reddit.com";
+
+#[derive(Deserialize, Debug)]
 pub struct Post {
-    author: String,
-    title: String,
-    url: String,
-    permalink: String,
+    pub author: String,
+    pub title: String,
+    pub url: String,
+    pub permalink: String,
 }
 
 impl Post {
@@ -28,27 +26,37 @@ impl Post {
     }
 }
 
-pub async fn get_reddit_posts(subreddit: String) -> VecDeque<Post> {
-    let response = reqwest::get(format!("r/{}/{}/.json", BASE_URL, subreddit))
+pub async fn get_reddit_posts(
+    client: Client,
+    request_form: reqwest::multipart::Form,
+    config: CompleteConfig,
+) -> VecDeque<Post> {
+    let response: serde_json::Value = client
+        .get(format!(
+            "{}/r/{}/.json",
+            BASE_URL,
+            config.subreddit.to_string()
+        ))
+        .multipart(request_form)
+        .send()
         .await
-        .unwrap_or_else(|err| panic_any(err));
-
-    let output: serde_json::Value = response.json()
+        .unwrap()
+        .json()
         .await
-        .unwrap_or_else(|err| panic_any(err));
+        .unwrap();
 
     let mut posts = VecDeque::new();
 
-    for item in output["data"]["children"].as_array().unwrap() {
-        let tmp = &item["data"];
+    // for item in response["data"]["children"].as_array().unwrap() {
+    //     let tmp = &item["data"];
 
-        posts.push_front(Post::new(
-            tmp["author"].to_string(),
-            tmp["title"].to_string(),
-            tmp["url"].to_string(),
-            tmp["permalink"].to_string(),
-        ));
-    }
+    //     posts.push_front(Post::new(
+    //         tmp["author"].to_string(),
+    //         tmp["title"].to_string(),
+    //         tmp["url"].to_string(),
+    //         tmp["permalink"].to_string(),
+    //     ));
+    // }
 
     posts
 }
