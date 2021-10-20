@@ -47,16 +47,16 @@ pub async fn get_reddit_posts(
 
     let mut posts = VecDeque::new();
 
-    // for item in response["data"]["children"].as_array().unwrap() {
-    //     let tmp = &item["data"];
+    for item in response["data"]["children"].as_array().unwrap() {
+        let tmp = &item["data"];
 
-    //     posts.push_front(Post::new(
-    //         tmp["author"].to_string(),
-    //         tmp["title"].to_string(),
-    //         tmp["url"].to_string(),
-    //         tmp["permalink"].to_string(),
-    //     ));
-    // }
+        posts.push_front(Post::new(
+            tmp["author"].to_string(),
+            tmp["title"].to_string(),
+            tmp["url"].to_string(),
+            tmp["permalink"].to_string(),
+        ));
+    }
 
     posts
 }

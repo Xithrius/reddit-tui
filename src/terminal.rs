@@ -11,7 +11,7 @@ use crossterm::{
 };
 use tui::layout::{Direction, Layout};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Cell, Row, Table};
+use tui::widgets::{Block, Borders, Row, Table};
 use tui::{backend::CrosstermBackend, layout::Constraint, Terminal};
 
 use crate::handlers::{
