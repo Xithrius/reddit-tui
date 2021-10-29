@@ -1,0 +1,14 @@
+# Username of the current person using the program
+username = ""
+# Password of the user
+password = ""
+# Client ID of the script application
+client_id = ""
+# The secret of the script application
+client_secret = ""
+# The subreddit that the user wants to browse
+subreddit = ""
+# The status of the browser (top, hot, new, controversial)
+status = ""
+# The amount of time in which the posts had been made (day, week, month, year, all)
+timespan = ""
