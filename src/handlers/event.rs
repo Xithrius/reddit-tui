@@ -1,8 +1,32 @@
 use std::time::Duration;
 
-use crossterm::event::{self, Event as CEvent, KeyCode, KeyEvent};
-use tokio::{sync::mpsc, task::JoinHandle, task::unconstrained, time::Instant};
-use futures::FutureExt;
+use crossterm::event::{self, Event as CEvent, KeyCode, KeyModifiers};
+use tokio::{sync::mpsc, task::JoinHandle, time::Instant};
+
+#[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub enum Key {
+    Backspace,
+    Esc,
+    Up,
+    Down,
+    Left,
+    Right,
+    Home,
+    End,
+    Delete,
+    Insert,
+    PageUp,
+    PageDown,
+    Tab,
+    BackTab,
+    Enter,
+    Char(char),
+    Ctrl(char),
+    Alt(char),
+    F(u8),
+    Null,
+}
 
 pub enum Event<I> {
     Input(I),
@@ -11,23 +35,21 @@ pub enum Event<I> {
 
 #[allow(dead_code)]
 pub struct Events {
-    rx: mpsc::Receiver<Event<KeyEvent>>,
+    rx: mpsc::Receiver<Event<Key>>,
     input_handle: JoinHandle<()>,
-    tick_handle: JoinHandle<()>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
-    pub exit_key: KeyCode,
+    pub exit_key: Key,
     pub tick_rate: Duration,
 }
 
 impl Events {
     pub async fn with_config(config: Config) -> Events {
-        let (tx, rx) = mpsc::channel(1);
+        let (tx, rx) = mpsc::channel(100);
 
         let input_handle = {
-            let tx = tx.clone();
             tokio::spawn(async move {
                 let mut last_tick = Instant::now();
 
@@ -39,6 +61,31 @@ impl Events {
 
                     if event::poll(timeout).unwrap() {
                         if let Ok(CEvent::Key(key)) = event::read() {
+                            let key = match key.code {
+                                KeyCode::Backspace => Key::Backspace,
+                                KeyCode::Esc => Key::Esc,
+                                KeyCode::Up => Key::Up,
+                                KeyCode::Down => Key::Down,
+                                KeyCode::Left => Key::Left,
+                                KeyCode::Right => Key::Right,
+                                KeyCode::Home => Key::Home,
+                                KeyCode::End => Key::End,
+                                KeyCode::Delete => Key::Delete,
+                                KeyCode::Insert => Key::Insert,
+                                KeyCode::PageUp => Key::PageUp,
+                                KeyCode::PageDown => Key::PageDown,
+                                KeyCode::Tab => Key::Tab,
+                                KeyCode::BackTab => Key::BackTab,
+                                KeyCode::Enter => Key::Enter,
+                                KeyCode::Null => Key::Null,
+                                KeyCode::F(k) => Key::F(k),
+                                KeyCode::Char(c) => match key.modifiers {
+                                    KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(c),
+                                    KeyModifiers::CONTROL => Key::Ctrl(c),
+                                    KeyModifiers::ALT => Key::Alt(c),
+                                    _ => Key::Null,
+                                },
+                            };
                             if let Err(err) = tx.send(Event::Input(key)).await {
                                 eprintln!("{}", err);
                                 return;
@@ -56,25 +103,10 @@ impl Events {
                 }
             })
         };
-
-        let tick_handle = {
-            tokio::spawn(async move {
-                loop {
-                    if tx.send(Event::Tick).await.is_err() {
-                        break;
-                    }
-                    tokio::time::sleep(config.tick_rate).await;
-                }
-            })
-        };
-        Events {
-            rx,
-            input_handle,
-            tick_handle,
-        }
+        Events { rx, input_handle }
     }
 
-    pub async fn next(&mut self) -> Option<Event<KeyEvent>> {
-        unconstrained(self.rx.recv()).now_or_never().and_then(|f| f)
+    pub async fn next(&mut self) -> Option<Event<Key>> {
+        self.rx.recv().await
     }
 }

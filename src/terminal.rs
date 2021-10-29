@@ -3,39 +3,36 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::layout::{Direction, Layout};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Row, Table};
-use tui::{backend::CrosstermBackend, layout::Constraint, Terminal};
-
-use crate::handlers::{
-    app::App,
-    event::{Event, Events, Config},
+use tui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    widgets::{Block, Borders, Row, Table},
+    Terminal,
 };
 
-pub async fn draw_terminal_ui() -> Result<()> {
+use crate::handlers::event::{Config, Event, Events, Key};
+
+pub async fn draw_terminal_ui() {
     let mut events = Events::with_config(Config {
-        exit_key: KeyCode::Null,
+        exit_key: Key::Null,
         tick_rate: Duration::from_millis(250),
     })
     .await;
 
-    let app = App::new(25);
-
-    enable_raw_mode()?;
+    enable_raw_mode().unwrap();
 
     let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
 
     let backend = CrosstermBackend::new(stdout);
 
-    let mut terminal = Terminal::new(backend)?;
+    let mut terminal = Terminal::new(backend).unwrap();
 
     terminal.clear().unwrap();
 
@@ -51,10 +48,6 @@ pub async fn draw_terminal_ui() -> Result<()> {
     };
 
     'outer: loop {
-        // if let Some(Some(info)) = unconstrained(rx.recv()).now_or_never() {
-        //     app.messages.push_front(info);
-        // }
-
         terminal
             .draw(|frame| {
                 let vertical_chunk_constraints = vec![Constraint::Min(1)];
@@ -89,13 +82,32 @@ pub async fn draw_terminal_ui() -> Result<()> {
             })
             .unwrap();
 
-        if let Some(Event::Input(input_event)) = &events.next().await {
-            if let KeyCode::Esc = input_event.code {
-                quitting(terminal);
-                break 'outer;
+        if let Some(Event::Input(key)) = &events.next().await {
+            match key {
+                Key::Esc => {
+                    quitting(terminal);
+                    break 'outer;
+                }
+                Key::Backspace => {}
+                Key::Up => {}
+                Key::Down => {}
+                Key::Left => {}
+                Key::Right => {}
+                Key::Home => {}
+                Key::End => {}
+                Key::Delete => {}
+                Key::Insert => {}
+                Key::PageUp => {}
+                Key::PageDown => {}
+                Key::Tab => {}
+                Key::BackTab => {}
+                Key::Enter => {}
+                Key::Char(_) => {}
+                Key::Ctrl(_) => {}
+                Key::Alt(_) => {}
+                Key::F(_) => {}
+                Key::Null => {}
             }
         }
     }
-
-    Ok(())
 }
