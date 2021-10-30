@@ -1,77 +1,62 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::Duration};
 
-use reqwest::Client;
-use serde::Deserialize;
+use anyhow::{Error, Result};
 
-use anyhow::{bail, Error, Result};
-
-use crate::handlers::config::CompleteConfig;
-
-#[derive(Deserialize, Debug)]
-pub struct Post {
-    pub author: String,
-    pub title: String,
-    pub url: String,
-    pub permalink: String,
-    pub image_url: String,
-}
-
-impl Post {
-    pub fn new(
-        author: String,
-        title: String,
-        url: String,
-        permalink: String,
-        image_url: String,
-    ) -> Self {
-        Post {
-            author,
-            title,
-            url,
-            permalink,
-            image_url,
-        }
-    }
-}
+use crate::handlers::{app::Reddit, config::CompleteConfig, post::Post};
 
 pub async fn get_reddit_posts(
-    client: Client,
-    token: String,
-    user_agent: String,
+    reddit_client: Reddit,
     config: CompleteConfig,
 ) -> Result<VecDeque<Post>, Error> {
-    let url = format!(
-        "https://oauth.reddit.com/r/{}/{}/?t={}.json",
-        config.subreddit, config.status, config.timespan
-    );
+    let url_formatter = |after: Option<String>| {
+        format!(
+            "https://oauth.reddit.com/r/{}/{}/.json?t={}&limit=100{}",
+            config.subreddit,
+            config.status,
+            config.timespan,
+            match after {
+                Some(page_hash) => format!("&after={}", page_hash).replace("\"", ""),
+                None => "".to_string(),
+            }
+        )
+    };
 
-    let response = client
-        .get(url)
-        .header("Authorization", token)
-        .header("User-Agent", user_agent)
-        .send()
-        .await;
+    let mut posts = VecDeque::new();
 
-    match response {
-        Ok(data) => {
-            let info: serde_json::Value = data.json().await.unwrap();
+    let mut after: Option<String> = None;
 
-            let mut posts = VecDeque::new();
+    'outer: loop {
+        let info = reddit_client.clone()
+            .get(url_formatter(after.clone()))
+            .await
+            .expect("Failed to get posts.");
 
-            for item in info["data"]["children"].as_array().unwrap() {
-                let tmp = &item["data"];
+        after = Some(info["data"]["after"].to_string());
 
-                posts.push_front(Post::new(
-                    tmp["author"].to_string(),
-                    tmp["title"].to_string(),
-                    tmp["url"].to_string(),
-                    format!("https://reddit.com{}", tmp["permalink"].to_string()),
-                    tmp["url"].to_string(),
-                ));
+        let post_list = info["data"]["children"].as_array().unwrap();
+
+        if post_list.is_empty() {
+            break 'outer;
+        }
+
+        for item in post_list {
+            let tmp_data = &item["data"];
+
+            if tmp_data["ups"].to_string().parse::<i32>().unwrap() < 500 {
+                break 'outer;
             }
 
-            Ok(posts)
+            posts.push_front(Post::new(
+                tmp_data["author"].to_string(),
+                tmp_data["title"].to_string(),
+                tmp_data["url"].to_string(),
+                format!("https://reddit.com{}", tmp_data["permalink"].to_string()),
+                tmp_data["url"].to_string(),
+            ));
         }
-        Err(err) => bail!(format!("Request to Reddit API failed. Error: {}", err)),
+
+        tokio::time::sleep(Duration::from_secs(2)).await;
     }
+
+    Ok(posts)
 }

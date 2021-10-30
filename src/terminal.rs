@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     io::{stdout, Stdout},
     time::Duration,
 };
@@ -16,9 +17,12 @@ use tui::{
     Terminal,
 };
 
-use crate::handlers::event::{Config, Event, Events, Key};
+use crate::handlers::{
+    event::{Config, Event, Events, Key},
+    post::Post,
+};
 
-pub async fn draw_terminal_ui() {
+pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
     let mut events = Events::with_config(Config {
         exit_key: Key::Null,
         tick_rate: Duration::from_millis(250),
@@ -58,25 +62,26 @@ pub async fn draw_terminal_ui() {
                     .constraints(vertical_chunk_constraints.as_ref())
                     .split(frame.size());
 
-                let table = Table::new(vec![Row::new(vec!["Row11", "Row12", "Row13"])])
-                    .style(Style::default().fg(Color::White))
-                    .header(
-                        Row::new(vec!["Col1", "Col2", "Col3"])
-                            .style(Style::default().fg(Color::Yellow))
-                            .bottom_margin(1),
-                    )
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .title("[ Reddit feed ]"),
-                    )
-                    .widths(&[
-                        Constraint::Length(5),
-                        Constraint::Length(5),
-                        Constraint::Length(10),
-                    ])
-                    .column_spacing(1)
-                    .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+                let table = Table::new(
+                    posts
+                        .iter()
+                        .map(|f| Row::new(vec![f.title.as_str()]))
+                        .collect::<Vec<Row>>(),
+                )
+                .style(Style::default().fg(Color::White))
+                .header(
+                    Row::new(vec!["Title"])
+                        .style(Style::default().fg(Color::Yellow))
+                        .bottom_margin(1),
+                )
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("[ Reddit feed ]"),
+                )
+                .widths(&[Constraint::Percentage(100)])
+                .column_spacing(1)
+                .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
                 frame.render_widget(table, vertical_chunks[0])
             })
