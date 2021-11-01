@@ -26,7 +26,8 @@ pub async fn get_reddit_posts(
     let mut after: Option<String> = None;
 
     'outer: loop {
-        let info = reddit_client.clone()
+        let info = reddit_client
+            .clone()
             .get(url_formatter(after.clone()))
             .await
             .expect("Failed to get posts.");
