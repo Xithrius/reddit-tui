@@ -910,9 +910,9 @@ dependencies = [
 
 [[package]]
 name = "rustyline"
-version = "9.1.0"
+version = "9.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dec400b53af4f6551ad23214ba08af344125785a0508228af83a84d498a5ce33"
+checksum = "db7826789c0e25614b03e5a54a0717a86f9ff6e6e5247f92b369472869320039"
 dependencies = [
  "bitflags",
  "cfg-if",
