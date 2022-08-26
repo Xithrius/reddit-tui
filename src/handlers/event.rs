@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use crossterm::event::{self, Event as CEvent, KeyCode, KeyModifiers};
-use tokio::{sync::mpsc, task::JoinHandle, time::Instant};
+use crossterm::event::{self, Event as CEvent, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use tokio::{sync::mpsc, time::Instant};
 
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
 pub enum Key {
+    // Keyboard controls
     Backspace,
     Esc,
     Up,
@@ -26,6 +26,14 @@ pub enum Key {
     Alt(char),
     F(u8),
     Null,
+
+    // Mouse controls
+    ScrollUp,
+    ScrollDown,
+    PressedButton(MouseButton),
+    ReleasedButton(MouseButton),
+    Drag(MouseButton),
+    Moved,
 }
 
 pub enum Event<I> {
@@ -33,10 +41,8 @@ pub enum Event<I> {
     Tick,
 }
 
-#[allow(dead_code)]
 pub struct Events {
     rx: mpsc::Receiver<Event<Key>>,
-    input_handle: JoinHandle<()>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,18 +55,18 @@ impl Events {
     pub async fn with_config(config: Config) -> Events {
         let (tx, rx) = mpsc::channel(100);
 
-        let input_handle = {
-            tokio::spawn(async move {
-                let mut last_tick = Instant::now();
+        tokio::spawn(async move {
+            let mut last_tick = Instant::now();
 
-                loop {
-                    let timeout = config
-                        .tick_rate
-                        .checked_sub(last_tick.elapsed())
-                        .unwrap_or_else(|| Duration::from_secs(0));
+            loop {
+                let timeout = config
+                    .tick_rate
+                    .checked_sub(last_tick.elapsed())
+                    .unwrap_or_else(|| Duration::from_secs(0));
 
-                    if event::poll(timeout).unwrap() {
-                        if let Ok(CEvent::Key(key)) = event::read() {
+                if event::poll(timeout).unwrap() {
+                    match event::read() {
+                        Ok(CEvent::Key(key)) => {
                             let key = match key.code {
                                 KeyCode::Backspace => Key::Backspace,
                                 KeyCode::Esc => Key::Esc,
@@ -85,25 +91,42 @@ impl Events {
                                     KeyModifiers::ALT => Key::Alt(c),
                                     _ => Key::Null,
                                 },
+                                _ => Key::Null,
                             };
                             if let Err(err) = tx.send(Event::Input(key)).await {
-                                eprintln!("{}", err);
+                                eprintln!("Keyboard input error: {}", err);
                                 return;
                             }
                         }
-                    }
+                        Ok(CEvent::Mouse(key)) => {
+                            let key = match key.kind {
+                                MouseEventKind::ScrollDown => Key::ScrollDown,
+                                MouseEventKind::ScrollUp => Key::ScrollUp,
+                                MouseEventKind::Down(button) => Key::PressedButton(button),
+                                MouseEventKind::Up(button) => Key::ReleasedButton(button),
+                                MouseEventKind::Drag(button) => Key::Drag(button),
+                                MouseEventKind::Moved => Key::Moved,
+                            };
 
-                    if last_tick.elapsed() >= config.tick_rate {
-                        if let Err(err) = tx.send(Event::Tick).await {
-                            eprintln!("{}", err);
-                            return;
+                            if let Err(err) = tx.send(Event::Input(key)).await {
+                                eprintln!("Mouse input error: {}", err);
+                                return;
+                            }
                         }
-                        last_tick = Instant::now();
+                        _ => (),
                     }
                 }
-            })
-        };
-        Events { rx, input_handle }
+
+                if last_tick.elapsed() >= config.tick_rate {
+                    if let Err(err) = tx.send(Event::Tick).await {
+                        eprintln!("{}", err);
+                        return;
+                    }
+                    last_tick = Instant::now();
+                }
+            }
+        });
+        Events { rx }
     }
 
     pub async fn next(&mut self) -> Option<Event<Key>> {

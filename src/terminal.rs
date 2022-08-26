@@ -1,5 +1,4 @@
 use std::{
-    collections::VecDeque,
     io::{stdout, Stdout},
     time::Duration,
 };
@@ -18,17 +17,18 @@ use tui::{
 };
 
 use crate::handlers::{
+    app::App,
+    config::CompleteConfig,
     event::{Config, Event, Events, Key},
-    post::Post,
 };
 
-pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
-    let mut events = Events::with_config(Config {
-        exit_key: Key::Null,
-        tick_rate: Duration::from_millis(250),
-    })
-    .await;
+fn reset_terminal() {
+    disable_raw_mode().unwrap();
 
+    execute!(stdout(), LeaveAlternateScreen).unwrap();
+}
+
+fn init_terminal() -> Terminal<CrosstermBackend<Stdout>> {
     enable_raw_mode().unwrap();
 
     let mut stdout = stdout();
@@ -36,7 +36,24 @@ pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
 
     let backend = CrosstermBackend::new(stdout);
 
-    let mut terminal = Terminal::new(backend).unwrap();
+    Terminal::new(backend).unwrap()
+}
+
+pub async fn ui_driver(mut config: CompleteConfig, mut app: App) {
+    let original_hook = std::panic::take_hook();
+
+    std::panic::set_hook(Box::new(move |panic| {
+        reset_terminal();
+        original_hook(panic);
+    }));
+
+    let mut events = Events::with_config(Config {
+        exit_key: Key::Null,
+        tick_rate: Duration::from_millis(config.terminal.tick_delay),
+    })
+    .await;
+
+    let mut terminal = init_terminal();
 
     terminal.clear().unwrap();
 
@@ -93,25 +110,7 @@ pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
                     quitting(terminal);
                     break 'outer;
                 }
-                Key::Backspace => {}
-                Key::Up => {}
-                Key::Down => {}
-                Key::Left => {}
-                Key::Right => {}
-                Key::Home => {}
-                Key::End => {}
-                Key::Delete => {}
-                Key::Insert => {}
-                Key::PageUp => {}
-                Key::PageDown => {}
-                Key::Tab => {}
-                Key::BackTab => {}
-                Key::Enter => {}
-                Key::Char(_) => {}
-                Key::Ctrl(_) => {}
-                Key::Alt(_) => {}
-                Key::F(_) => {}
-                Key::Null => {}
+                _ => {}
             }
         }
     }
