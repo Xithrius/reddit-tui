@@ -4,6 +4,7 @@ use crate::handlers::{app::App, config::CompleteConfig};
 
 mod handlers;
 mod terminal;
+mod ui;
 mod utils;
 
 #[tokio::main]

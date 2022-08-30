@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::{
     io::{stdout, Stdout},
     time::Duration,
@@ -16,10 +17,14 @@ use tui::{
     Terminal,
 };
 
-use crate::handlers::{
-    app::App,
-    config::CompleteConfig,
-    event::{Config, Event, Events, Key},
+use crate::handlers::state::TableEvents;
+use crate::{
+    handlers::{
+        app::App,
+        config::CompleteConfig,
+        event::{Config, Event, Events, Key},
+    },
+    ui::draw_ui,
 };
 
 fn reset_terminal() {
@@ -68,45 +73,16 @@ pub async fn ui_driver(mut config: CompleteConfig, mut app: App) {
         terminal.show_cursor().unwrap();
     };
 
+    let mut table_events = TableEvents::new(VecDeque::new());
+
     'outer: loop {
         terminal
-            .draw(|frame| {
-                let vertical_chunk_constraints = vec![Constraint::Min(1)];
-
-                let vertical_chunks = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(1)
-                    .constraints(vertical_chunk_constraints.as_ref())
-                    .split(frame.size());
-
-                let table = Table::new(
-                    posts
-                        .iter()
-                        .map(|f| Row::new(vec![f.title.as_str()]))
-                        .collect::<Vec<Row>>(),
-                )
-                .style(Style::default().fg(Color::White))
-                .header(
-                    Row::new(vec!["Title"])
-                        .style(Style::default().fg(Color::Yellow))
-                        .bottom_margin(1),
-                )
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("[ Reddit feed ]"),
-                )
-                .widths(&[Constraint::Percentage(100)])
-                .column_spacing(1)
-                .highlight_style(Style::default().add_modifier(Modifier::BOLD));
-
-                frame.render_widget(table, vertical_chunks[0])
-            })
+            .draw(|frame| draw_ui(frame, &mut app, &config, &mut table_events))
             .unwrap();
 
         if let Some(Event::Input(key)) = &events.next().await {
             match key {
-                Key::Esc => {
+                Key::Char('q') => {
                     quitting(terminal);
                     break 'outer;
                 }
