@@ -17,7 +17,7 @@ tokio = { version = "1.20.1", features = [ "full" ] }
 reqwest = { version = "0.11.11", features = [ "json", "multipart" ] }
 serde = { version = "1.0.144", features = [ "derive" ] }
 crossterm = "0.25.0"
-unicode-width = "0.1.9"
+unicode-width = "0.1.10"
 futures = "0.3.23"
 serde_json = "1.0.85"
 toml = "0.5.9"
