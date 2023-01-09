@@ -1,5 +1,4 @@
 use std::{
-    collections::VecDeque,
     io::{stdout, Stdout},
     time::Duration,
 };
@@ -9,26 +8,24 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Row, Table},
-    Terminal,
+use tui::{backend::CrosstermBackend, Terminal};
+
+use crate::{
+    handlers::{
+        app::App,
+        config::CompleteConfig,
+        event::{Config, Event, Events, Key},
+    },
+    ui::draw_ui,
 };
 
-use crate::handlers::{
-    event::{Config, Event, Events, Key},
-    post::Post,
-};
+fn reset_terminal() {
+    disable_raw_mode().unwrap();
 
-pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
-    let mut events = Events::with_config(Config {
-        exit_key: Key::Null,
-        tick_rate: Duration::from_millis(250),
-    })
-    .await;
+    execute!(stdout(), LeaveAlternateScreen).unwrap();
+}
 
+fn init_terminal() -> Terminal<CrosstermBackend<Stdout>> {
     enable_raw_mode().unwrap();
 
     let mut stdout = stdout();
@@ -36,7 +33,24 @@ pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
 
     let backend = CrosstermBackend::new(stdout);
 
-    let mut terminal = Terminal::new(backend).unwrap();
+    Terminal::new(backend).unwrap()
+}
+
+pub async fn ui_driver(config: CompleteConfig, mut app: App) {
+    let original_hook = std::panic::take_hook();
+
+    std::panic::set_hook(Box::new(move |panic| {
+        reset_terminal();
+        original_hook(panic);
+    }));
+
+    let mut events = Events::with_config(Config {
+        exit_key: Key::Null,
+        tick_rate: Duration::from_millis(config.terminal.tick_delay),
+    })
+    .await;
+
+    let mut terminal = init_terminal();
 
     terminal.clear().unwrap();
 
@@ -53,65 +67,19 @@ pub async fn draw_terminal_ui(posts: VecDeque<Post>) {
 
     'outer: loop {
         terminal
-            .draw(|frame| {
-                let vertical_chunk_constraints = vec![Constraint::Min(1)];
-
-                let vertical_chunks = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(1)
-                    .constraints(vertical_chunk_constraints.as_ref())
-                    .split(frame.size());
-
-                let table = Table::new(
-                    posts
-                        .iter()
-                        .map(|f| Row::new(vec![f.title.as_str()]))
-                        .collect::<Vec<Row>>(),
-                )
-                .style(Style::default().fg(Color::White))
-                .header(
-                    Row::new(vec!["Title"])
-                        .style(Style::default().fg(Color::Yellow))
-                        .bottom_margin(1),
-                )
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("[ Reddit feed ]"),
-                )
-                .widths(&[Constraint::Percentage(100)])
-                .column_spacing(1)
-                .highlight_style(Style::default().add_modifier(Modifier::BOLD));
-
-                frame.render_widget(table, vertical_chunks[0])
-            })
+            .draw(|frame| draw_ui(frame, &mut app, &config))
             .unwrap();
 
         if let Some(Event::Input(key)) = &events.next().await {
             match key {
-                Key::Esc => {
+                Key::Char('q') => {
                     quitting(terminal);
                     break 'outer;
                 }
-                Key::Backspace => {}
-                Key::Up => {}
-                Key::Down => {}
-                Key::Left => {}
-                Key::Right => {}
-                Key::Home => {}
-                Key::End => {}
-                Key::Delete => {}
-                Key::Insert => {}
-                Key::PageUp => {}
-                Key::PageDown => {}
-                Key::Tab => {}
-                Key::BackTab => {}
-                Key::Enter => {}
-                Key::Char(_) => {}
-                Key::Ctrl(_) => {}
-                Key::Alt(_) => {}
-                Key::F(_) => {}
-                Key::Null => {}
+                Key::Char('p') => {
+                    panic!("Manual panic triggered.");
+                }
+                _ => {}
             }
         }
     }
