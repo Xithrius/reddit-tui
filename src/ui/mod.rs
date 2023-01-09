@@ -1,24 +1,17 @@
-use tui::widgets::ListItem;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     widgets::{Block, Borders, Row, Table},
     Frame,
 };
 
-use crate::handlers::state::TableEvents;
 use crate::handlers::{app::App, config::CompleteConfig};
 
-pub fn draw_ui<T: Backend>(
-    frame: &mut Frame<T>,
-    app: &mut App,
-    config: &CompleteConfig,
-    table_events: &mut TableEvents,
-) {
+pub fn draw_ui<T: Backend>(frame: &mut Frame<T>, _app: &mut App, _config: &CompleteConfig) {
     let vertical_chunk_constraints = vec![Constraint::Min(1)];
 
-    let vertical_chunks = Layout::default()
+    let _vertical_chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
         .constraints(vertical_chunk_constraints.as_ref())
@@ -36,13 +29,13 @@ pub fn draw_ui<T: Backend>(
     // .column_spacing(1)
     // .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
-    let items = table_events
-        .posts
-        .iter()
-        .map(|i| Row::new(vec![i.as_ref()]))
-        .collect::<Vec<Row>>();
+    // let items = table_events
+    //     .posts
+    //     .iter()
+    //     .map(|i| Row::new(vec![i.as_ref()]))
+    //     .collect::<Vec<Row>>();
 
-    let table = Table::new(items)
+    let table = Table::new(vec![])
         .style(Style::default().fg(Color::White))
         .header(
             Row::new(vec!["Title"])
@@ -55,5 +48,5 @@ pub fn draw_ui<T: Backend>(
                 .title("[ Reddit feed ]"),
         );
 
-    frame.render_stateful_widget(table, frame.size(), &mut table_events.state);
+    frame.render_widget(table, frame.size());
 }

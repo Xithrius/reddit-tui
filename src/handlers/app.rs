@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub enum State {
     Normal,
     Insert,
@@ -10,8 +11,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> Self {
-        App {
+    pub const fn new() -> Self {
+        Self {
             state: State::Normal,
         }
     }

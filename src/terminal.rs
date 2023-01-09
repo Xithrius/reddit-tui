@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::{
     io::{stdout, Stdout},
     time::Duration,
@@ -9,15 +8,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Row, Table},
-    Terminal,
-};
+use tui::{backend::CrosstermBackend, Terminal};
 
-use crate::handlers::state::TableEvents;
 use crate::{
     handlers::{
         app::App,
@@ -44,7 +36,7 @@ fn init_terminal() -> Terminal<CrosstermBackend<Stdout>> {
     Terminal::new(backend).unwrap()
 }
 
-pub async fn ui_driver(mut config: CompleteConfig, mut app: App) {
+pub async fn ui_driver(config: CompleteConfig, mut app: App) {
     let original_hook = std::panic::take_hook();
 
     std::panic::set_hook(Box::new(move |panic| {
@@ -73,11 +65,9 @@ pub async fn ui_driver(mut config: CompleteConfig, mut app: App) {
         terminal.show_cursor().unwrap();
     };
 
-    let mut table_events = TableEvents::new(VecDeque::new());
-
     'outer: loop {
         terminal
-            .draw(|frame| draw_ui(frame, &mut app, &config, &mut table_events))
+            .draw(|frame| draw_ui(frame, &mut app, &config))
             .unwrap();
 
         if let Some(Event::Input(key)) = &events.next().await {
@@ -85,6 +75,9 @@ pub async fn ui_driver(mut config: CompleteConfig, mut app: App) {
                 Key::Char('q') => {
                     quitting(terminal);
                     break 'outer;
+                }
+                Key::Char('p') => {
+                    panic!("Manual panic triggered.");
                 }
                 _ => {}
             }

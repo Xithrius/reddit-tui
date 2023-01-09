@@ -11,5 +11,10 @@
 # Log files
 *.log
 
-# JetBrains project config folder
+# JetBrains project config folder.
 .idea
+.fleet
+
+# Ignore Vim temporary and swap files.
+*.sw?
+*~
