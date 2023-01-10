@@ -1,15 +1,18 @@
-# reddit-tui
+# Reddit chat in the terminal
 
-Reddit in the terminal.
+[![CI](https://github.com/Xithrius/reddit-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/Xithrius/reddit-tui/actions/workflows/ci.yml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Xithrius/reddit-tui/main.svg)](https://results.pre-commit.ci/latest/github/Xithrius/reddit-tui/main)
+[![Lines of code](https://tokei.rs/b1/github/Xithrius/reddit-tui?category=code)](https://github.com/Xithrius/reddit-tui)
 
-## Warning
+Roadmap: https://github.com/Xithrius/reddit-tui/issues/1
 
-This project is still in development, so the instructions below probably won't work. I'll remove this note once everything is in a stable state.
+## Links
 
-## Setup
+- [Documentation](https://xithrius.github.io/reddit-tui/)
+- [Setup](https://xithrius.github.io/reddit-tui/guide/installation)
 
-1. Go to [app preferences](https://www.reddit.com/prefs/apps), and make a script with whatever name you'd like.
-2. Copy the contents of `default-config.toml` into `~/.config/treddit/config.toml` if you're on Linux or MacOs. If on Windows, put this config file in `%appdata%\treddit\config.toml`.
-3. Install the program with `cargo install reddit-tui`, and run with `treddit`. To get updates, simply do `cargo install reddit-tui` whenever you'd like.
+## More information
 
-If you'd like to read up even more, go to [Reddit's OAuth2 guide](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example).
+If you have any problems, do not hesitate to [submit an issue](https://github.com/Xithrius/reddit-tui/issues/new/choose).
+
+This project follows the guidelines of [Semantic Versioning](https://semver.org/).

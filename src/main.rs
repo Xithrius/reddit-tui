@@ -10,10 +10,13 @@
     clippy::suboptimal_flops
 )]
 
+use api::{auth::Reddit, posts::get_reddit_posts};
 use color_eyre::eyre::{Result, WrapErr};
 
 use crate::handlers::{app::App, config::CompleteConfig};
 
+mod api;
+mod commands;
 mod handlers;
 mod terminal;
 mod ui;
@@ -29,7 +32,11 @@ async fn main() -> Result<()> {
 
     let app = App::new();
 
-    terminal::ui_driver(config, app).await;
+    let reddit = Reddit::new(&config.reddit).await.unwrap();
+
+    get_reddit_posts(reddit, config.reddit).await.unwrap();
+
+    // terminal::ui_driver(config, app).await;
 
     std::process::exit(0)
 }

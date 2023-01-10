@@ -1,16 +1,7 @@
-use std::{
-    io::{stdout, Stdout},
-    time::Duration,
-};
-
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use tui::{backend::CrosstermBackend, Terminal};
+use std::time::Duration;
 
 use crate::{
+    commands::{init_terminal, quit_terminal, reset_terminal},
     handlers::{
         app::App,
         config::CompleteConfig,
@@ -18,23 +9,6 @@ use crate::{
     },
     ui::draw_ui,
 };
-
-fn reset_terminal() {
-    disable_raw_mode().unwrap();
-
-    execute!(stdout(), LeaveAlternateScreen).unwrap();
-}
-
-fn init_terminal() -> Terminal<CrosstermBackend<Stdout>> {
-    enable_raw_mode().unwrap();
-
-    let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
-
-    let backend = CrosstermBackend::new(stdout);
-
-    Terminal::new(backend).unwrap()
-}
 
 pub async fn ui_driver(config: CompleteConfig, mut app: App) {
     let original_hook = std::panic::take_hook();
@@ -50,22 +24,11 @@ pub async fn ui_driver(config: CompleteConfig, mut app: App) {
     })
     .await;
 
-    let mut terminal = init_terminal();
+    let mut terminal = init_terminal(&config.frontend);
 
     terminal.clear().unwrap();
 
-    let quitting = |mut terminal: Terminal<CrosstermBackend<Stdout>>| {
-        disable_raw_mode().unwrap();
-        execute!(
-            terminal.backend_mut(),
-            LeaveAlternateScreen,
-            DisableMouseCapture
-        )
-        .unwrap();
-        terminal.show_cursor().unwrap();
-    };
-
-    'outer: loop {
+    loop {
         terminal
             .draw(|frame| draw_ui(frame, &mut app, &config))
             .unwrap();
@@ -73,8 +36,9 @@ pub async fn ui_driver(config: CompleteConfig, mut app: App) {
         if let Some(Event::Input(key)) = &events.next().await {
             match key {
                 Key::Char('q') => {
-                    quitting(terminal);
-                    break 'outer;
+                    quit_terminal(terminal);
+
+                    break;
                 }
                 Key::Char('p') => {
                     panic!("Manual panic triggered.");
@@ -83,4 +47,6 @@ pub async fn ui_driver(config: CompleteConfig, mut app: App) {
             }
         }
     }
+
+    reset_terminal();
 }

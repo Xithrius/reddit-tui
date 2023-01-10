@@ -1,6 +1,6 @@
-use color_eyre::eyre::bail;
+use color_eyre::eyre::{bail, Error, Result};
 
-use crate::handlers::config::CompleteConfig;
+use crate::handlers::config::RedditConfig;
 
 #[derive(Debug, Clone)]
 pub struct Reddit {
@@ -10,7 +10,7 @@ pub struct Reddit {
 }
 
 impl Reddit {
-    pub async fn new(config: &CompleteConfig) -> Result<Self, Error> {
+    pub async fn new(config: &RedditConfig) -> Result<Self, Error> {
         let user_agent = format!("tui/v{} by {}", env!("CARGO_PKG_VERSION"), config.username);
 
         let client = reqwest::Client::builder().build().unwrap();
@@ -32,25 +32,27 @@ impl Reddit {
             .await
             .unwrap();
 
-        if response.status() != 200 {
-            bail!(
-                "Could not authenticate through the Reddit API. Status: {}.",
-                response.status()
-            );
-        } else {
+        if response.status() == 200 {
             match response.json().await {
                 Ok(data) => {
                     let auth_info: serde_json::Value = data;
 
-                    Ok(Reddit {
+                    println!("{auth_info:#?}");
+
+                    Ok(Self {
                         client,
                         user_agent,
                         bearer_token: format!("bearer {}", auth_info["access_token"])
-                            .replace("\"", ""),
+                            .replace('"', ""),
                     })
                 }
                 _ => bail!("Could not parse Reddit authentication data."),
             }
+        } else {
+            bail!(
+                "Could not authenticate through the Reddit API. Status: {}.",
+                response.status()
+            );
         }
     }
 
