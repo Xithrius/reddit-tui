@@ -36,9 +36,7 @@ pub fn reset_terminal() {
     execute!(stdout(), LeaveAlternateScreen, ResetCursorShape).unwrap();
 }
 
-pub fn init_terminal(
-    frontend_config: &FrontendConfig,
-) -> Terminal<CrosstermBackend<Stdout>> {
+pub fn init_terminal(frontend_config: &FrontendConfig) -> Terminal<CrosstermBackend<Stdout>> {
     enable_raw_mode().unwrap();
 
     let cursor_type = match frontend_config.cursor_shape {
